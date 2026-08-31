@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Employee Request Lifecycle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F7F6F3; --surface:#FFFFFF; --surface-2:#F1EFEA;
+  --ink:#161A21; --ink-2:#3A424E; --muted:#5C6472; --line:#DBD7CF; --line-2:#EAE7E0;
+  --accent:#0F5E5A; --accent-soft:#E2EFEC;
+  --amber:#9A5B00; --amber-soft:#F6EBD9;
+  --crit:#9E2E1C; --crit-soft:#F7E3DF;
+  --paper:#FBFAF7; --paper-line:#D9D5CC;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#12151A; --surface:#191D24; --surface-2:#20252D;
+    --ink:#E7EAEF; --ink-2:#C0C7D1; --muted:#8E97A5; --line:#2C333D; --line-2:#232931;
+    --accent:#5CBBAD; --accent-soft:#12302E;
+    --amber:#D89A3E; --amber-soft:#2E2517;
+    --crit:#E08272; --crit-soft:#331C18;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#12151A; --surface:#191D24; --surface-2:#20252D;
+  --ink:#E7EAEF; --ink-2:#C0C7D1; --muted:#8E97A5; --line:#2C333D; --line-2:#232931;
+  --accent:#5CBBAD; --accent-soft:#12302E;
+  --amber:#D89A3E; --amber-soft:#2E2517;
+  --crit:#E08272; --crit-soft:#331C18;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:16px;line-height:1.65;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px;display:grid;grid-template-columns:1fr;gap:0}
+.rail{display:none}
+@media(min-width:1040px){
+  .wrap{grid-template-columns:200px minmax(0,1fr);gap:56px;padding-right:40px}
+  .rail{display:block}
+}
+.rail{position:sticky;top:0;align-self:start;padding-top:120px;max-height:100vh;overflow-y:auto}
+.rail a{display:block;color:var(--muted);text-decoration:none;font-size:12.5px;padding:5px 0 5px 12px;
+  border-left:2px solid var(--line-2);font-family:"IBM Plex Mono",monospace;letter-spacing:.01em}
+.rail a:hover,.rail a:focus-visible{color:var(--accent);border-left-color:var(--accent)}
+.rail .rail-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);
+  padding:18px 0 6px 12px;border-left:2px solid transparent;font-family:"IBM Plex Mono",monospace}
+
+header.masthead{grid-column:1/-1;padding:76px 0 40px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 18px}
+h1{font-family:"Newsreader",Georgia,serif;font-weight:600;font-size:clamp(34px,5.4vw,56px);
+  line-height:1.06;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;max-width:16ch}
+.dek{font-size:18px;color:var(--ink-2);max-width:62ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:28px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+
+main{min-width:0;padding-top:8px}
+section{padding-top:56px;scroll-margin-top:24px}
+h2{font-family:"Newsreader",Georgia,serif;font-weight:600;font-size:30px;line-height:1.15;
+  letter-spacing:-.01em;margin:0 0 6px;text-wrap:balance}
+h2 .num{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:10px;font-weight:500}
+h3{font-size:15px;font-weight:600;margin:34px 0 10px;letter-spacing:-.005em}
+h4{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;margin:26px 0 8px}
+p{max-width:68ch;margin:0 0 14px;color:var(--ink-2)}
+.lede{color:var(--ink);font-size:16.5px}
+ul,ol{max-width:68ch;color:var(--ink-2);padding-left:20px;margin:0 0 14px}
+li{margin-bottom:6px}
+li::marker{color:var(--muted)}
+strong{color:var(--ink);font-weight:600}
+code{font-family:"IBM Plex Mono",monospace;font-size:.87em;background:var(--surface-2);
+  border:1px solid var(--line-2);border-radius:3px;padding:1px 5px;color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+.sheet{background:var(--paper);border:1px solid var(--paper-line);border-radius:2px;
+  margin:20px 0 8px;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.sheet-cap{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;
+  padding:10px 16px;border-bottom:1px solid var(--paper-line);background:#F2F0EA;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#5C6472}
+.sheet-cap span{letter-spacing:.04em;text-transform:none;color:#78808E}
+.sheet-body{overflow-x:auto;padding:22px 16px}
+.mermaid{min-width:min-content}
+/* the diagram font must match the font mermaid measures labels with, or node
+   boxes are sized for one face and painted with another and the text clips */
+.mermaid,.mermaid *{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif!important}
+.figcap{font-size:13px;color:var(--muted);max-width:68ch;margin:0 0 8px}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:14px 0}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:2px;margin:16px 0;background:var(--surface)}
+.tbl table{margin:0;min-width:640px}
+th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);font-weight:500;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+td{padding:11px 14px;border-bottom:1px solid var(--line-2);color:var(--ink-2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td b{color:var(--ink)}
+.num-col{font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.id{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);white-space:nowrap}
+
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:.06em;padding:2px 7px;border-radius:2px;white-space:nowrap;border:1px solid transparent}
+.p1{background:var(--crit-soft);color:var(--crit);border-color:var(--crit)}
+.p2{background:var(--amber-soft);color:var(--amber);border-color:var(--amber)}
+.p3{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.p4{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:2px;padding:16px 18px}
+.card h5{margin:0 0 6px;font-size:14px;font-weight:600;color:var(--ink)}
+.card p{font-size:13.5px;margin:0;color:var(--muted)}
+.card .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--accent);display:block;margin-bottom:8px}
+
+.callout{border-left:2px solid var(--accent);background:var(--surface);padding:14px 18px;margin:20px 0;
+  border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.callout p{margin:0;font-size:14.5px}
+.callout p+p{margin-top:10px}
+
+.rule{height:1px;background:var(--line);border:0;margin:0}
+footer{grid-column:1/-1;margin-top:72px;padding-top:24px;border-top:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <p class="eyebrow">Part 1 · Workflow Design</p>
+  <h1>Employee Request Lifecycle</h1>
+  <p class="dek">An omni-channel intake, classification, routing, escalation and resolution architecture for internal employee requisitions — replacing fragmented email, SMS, WhatsApp and DM handling with a single accountable pipeline.</p>
+  <div class="meta">
+    <div><b>Scope</b> ~500-employee organisation</div>
+    <div><b>Departments</b> HR · IT · Payroll · Operations · Other</div>
+    <div><b>Diagrams</b> 5</div>
+    <div><b>Scenarios covered</b> 22</div>
+  </div>
+</header>
+
+<nav class="rail" aria-label="Contents">
+  <div class="rail-h">Contents</div>
+  <a href="#master">01 Master lifecycle</a>
+  <a href="#intake">02 Intake</a>
+  <a href="#taxonomy">03 Taxonomy</a>
+  <a href="#routing">04 Routing</a>
+  <a href="#priority">05 Priority &amp; SLA</a>
+  <a href="#escalation">06 Escalation</a>
+  <a href="#states">07 State machine</a>
+  <a href="#resolution">08 Resolution</a>
+  <a href="#scenarios">09 Scenario catalogue</a>
+  <a href="#exceptions">10 Failure modes</a>
+  <a href="#metrics">11 Metrics</a>
+</nav>
+
+<main>
+
+<section id="master">
+  <h2><span class="num">01</span>Master lifecycle</h2>
+  <p class="lede">Every request, whatever channel it arrives on, is normalised into a single ticket object within 60 seconds and then travels one path. The five lanes below map to the five specifications in the brief: intake, categorisation, routing, escalation, resolution.</p>
+  <p>Read it left to right. The only place a human decides where work goes is the <strong>Triage queue</strong>, and that queue exists solely to absorb what the classifier is not confident about — by design it should receive under 15% of volume once keyword and model tuning settles.</p>
+
+  <div class="sheet">
+    <div class="sheet-cap">Fig. 01 — End-to-end lifecycle <span>swimlane</span></div>
+    <div class="sheet-body">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"fontFamily":"ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif","fontSize":"13px","primaryColor":"#FFFFFF","primaryTextColor":"#161A21","primaryBorderColor":"#8A9199","lineColor":"#6B7280","clusterBkg":"#F2F0EA","clusterBorder":"#C9C4B9","tertiaryColor":"#FFFFFF"}}}%%
+flowchart LR
+  subgraph L1["① INTAKE"]
+    direction TB
+    A1[/"Employee submits<br/>Portal · WhatsApp · Email<br/>· SMS · Teams/Slack"/]
+    A2["Channel adapter<br/>normalises payload"]
+    A3["Identity resolution<br/>match to HRIS record"]
+    A4["Ticket created<br/>REQ-YYYY-NNNN"]
+    A1 --> A2 --> A3 --> A4
+  end
+  subgraph L2["② CLASSIFY"]
+    direction TB
+    B1{"Requester chose<br/>a category?"}
+    B2["Accept as override<br/>confidence = 1.0"]
+    B3["Auto-classifier<br/>keywords + LLM intent"]
+    B4{"Confidence<br/>score?"}
+    B5["Triage queue<br/>human decides"]
+    B1 -->|Yes| B2
+    B1 -->|No| B3 --> B4
+    B4 -->|"&lt; 0.45"| B5
+  end
+  subgraph L3["③ ROUTE"]
+    direction TB
+    C1["Map category →<br/>skill group"]
+    C2["Approval required?<br/>e.g. leave, spend"]
+    C3["Assign: least-loaded<br/>available agent"]
+    C4["Notify assignee<br/>+ acknowledge requester"]
+    C1 --> C2 --> C3 --> C4
+  end
+  subgraph L4["④ MONITOR"]
+    direction TB
+    D1["SLA clock starts<br/>on business calendar"]
+    D2{"Breach risk?"}
+    D3["Escalation ladder<br/>L1 → L2 → L3"]
+    D1 --> D2 -->|Yes| D3
+    D2 -->|No| D4["Work continues"]
+  end
+  subgraph L5["⑤ RESOLVE"]
+    direction TB
+    E1["Agent posts resolution<br/>+ resolution code"]
+    E2{"Requester<br/>confirms?"}
+    E3["Reopen<br/>same ticket ID"]
+    E4["Finalized<br/>locked + archived"]
+    E5["Feed analytics<br/>&amp; knowledge base"]
+    E1 --> E2
+    E2 -->|"No / disputes"| E3
+    E2 -->|"Yes or 72h silence"| E4 --> E5
+  end
+  A4 --> B1
+  B2 --> C1
+  B4 -->|"&ge; 0.45"| C1
+  B5 --> C1
+  C4 --> D1
+  D3 --> E1
+  D4 --> E1
+  E3 --> C3
+  style L1 fill:#F2F0EA,stroke:#C9C4B9
+  style L2 fill:#F2F0EA,stroke:#C9C4B9
+  style L3 fill:#F2F0EA,stroke:#C9C4B9
+  style L4 fill:#F2F0EA,stroke:#C9C4B9
+  style L5 fill:#F2F0EA,stroke:#C9C4B9
+  style A4 fill:#E2EFEC,stroke:#0F5E5A
+  style B5 fill:#F6EBD9,stroke:#9A5B00
+  style D3 fill:#F7E3DF,stroke:#9E2E1C
+  style E4 fill:#E2EFEC,stroke:#0F5E5A
+</pre>
+    </div>
+  </div>
+  <p class="figcap">Diagrams are drawn on a fixed light sheet so they stay legible regardless of the reader's theme.</p>
+</section>
+
+<hr class="rule">
+<section id="intake">
+  <h2><span class="num">02</span>Intake &amp; normalisation</h2>
+  <p class="lede">The brief's first requirement is "a standardised entry point for omni-channel submissions." The critical design decision is that channels are <em>not</em> the entry point — the <strong>normaliser</strong> is. Each channel gets a thin adapter; everything downstream sees one shape.</p>
+
+  <p>This matters because the organisation cannot realistically force everyone onto a portal. People will keep WhatsApping their manager. So instead of banning channels, each one is instrumented and funnelled into the same object. The portal is the <em>preferred</em> channel because it captures structured fields cheaply, not the <em>only</em> one.</p>
+
+  <div class="sheet">
+    <div class="sheet-cap">Fig. 02 — Channel adapters &amp; the normalised ticket object</div>
+    <div class="sheet-body">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"fontFamily":"ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif","fontSize":"13px","primaryColor":"#FFFFFF","primaryTextColor":"#161A21","primaryBorderColor":"#8A9199","lineColor":"#6B7280","clusterBkg":"#F2F0EA","clusterBorder":"#C9C4B9"}}}%%
+flowchart TB
+  P["Web / mobile portal<br/><i>structured form</i>"] --> N
+  W["WhatsApp Business API<br/><i>free text + media</i>"] --> N
+  M["Shared mailbox<br/>help@company.com"] --> N
+  S["SMS gateway<br/><i>shift staff, no email</i>"] --> N
+  T["Teams / Slack bot<br/><i>/request command</i>"] --> N
+  V["Walk-in / phone<br/><i>agent logs on behalf</i>"] --> N
+  N["<b>NORMALISER</b><br/>strip signatures · extract attachments<br/>detect language · redact card &amp; ID numbers"]
+  N --> ID{"Sender matches an<br/>HRIS employee record?"}
+  ID -->|Yes| OBJ
+  ID -->|"No — unknown number<br/>or external address"| UNK["Unverified queue<br/>bot asks for employee ID<br/>· auto-drop after 48h"]
+  UNK -->|"identity confirmed"| OBJ
+  OBJ["<b>Ticket object</b><br/>id · requester · dept · manager · site<br/>channel · raw_text · attachments<br/>category · priority · sla_due · state"]
+  OBJ --> DUP{"Near-duplicate of an<br/>open ticket by same<br/>requester &lt; 24h?"}
+  DUP -->|Yes| MRG["Merge as a comment<br/>on the parent ticket"]
+  DUP -->|No| GO["Release to classification"]
+  style N fill:#E2EFEC,stroke:#0F5E5A
+  style OBJ fill:#E2EFEC,stroke:#0F5E5A
+  style UNK fill:#F6EBD9,stroke:#9A5B00
+  style MRG fill:#F6EBD9,stroke:#9A5B00
+</pre>
+    </div>
+  </div>
+
+  <h3>Fields captured at intake</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Field</th><th>Source</th><th>Required</th><th>Why it exists</th></tr></thead>
+    <tbody>
+      <tr><td class="id">request_id</td><td>System</td><td>Always</td><td>Single reference across every channel and every conversation.</td></tr>
+      <tr><td class="id">requester_id</td><td>HRIS lookup</td><td>Always</td><td>Pulls department, manager, site and entitlements without asking.</td></tr>
+      <tr><td class="id">channel</td><td>Adapter</td><td>Always</td><td>Tells you which channels to invest in — and which to retire.</td></tr>
+      <tr><td class="id">subject / body</td><td>Requester</td><td>Yes</td><td>Classifier input and the agent's context.</td></tr>
+      <tr><td class="id">category</td><td>Requester <i>or</i> classifier</td><td>Derived</td><td>Optional for the human, mandatory for the system.</td></tr>
+      <tr><td class="id">impact / urgency</td><td>Requester + rules</td><td>Derived</td><td>Two honest questions beat one "how urgent is this?" dropdown everyone sets to High.</td></tr>
+      <tr><td class="id">attachments</td><td>Any channel</td><td>Optional</td><td>Payslips, screenshots, medical certificates — scanned and access-scoped.</td></tr>
+      <tr><td class="id">site / shift</td><td>HRIS</td><td>Always</td><td>Drives the business-hours calendar the SLA clock runs on.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout"><p><strong>Design choice:</strong> urgency is never asked as a single free question. The form asks <em>who is affected</em> (just me / my team / my whole site / the company) and <em>what is blocked</em> (nothing / some work / all my work / revenue or safety). Priority is computed from the pair. This removes the universal problem of every request arriving marked Urgent.</p></div>
+</section>
+
+<hr class="rule">
+<section id="taxonomy">
+  <h2><span class="num">03</span>Categorisation taxonomy</h2>
+  <p class="lede">Five top-level departments, each with a small closed set of request types. The taxonomy is deliberately shallow — two levels — because deep trees are where classification accuracy and human patience both die.</p>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Department</th><th>Request types</th><th>Signal keywords &amp; intents</th><th>Owning group</th></tr></thead>
+    <tbody>
+      <tr><td><b>HR</b></td><td>Leave · Attendance correction · Policy question · Grievance · Document request (letters, certificates) · Onboarding / exit</td><td>leave, vacation, sick, PTO, holiday, resign, notice period, appraisal, policy, harassment, experience letter</td><td>HR Operations</td></tr>
+      <tr><td><b>IT</b></td><td>Access &amp; accounts · Hardware · Software &amp; licences · Network · Security incident</td><td>password, login, VPN, laptop, printer, wifi, install, access, locked out, phishing, mail not working</td><td>IT Service Desk</td></tr>
+      <tr><td><b>Payroll</b></td><td>Salary discrepancy · Payslip · Tax &amp; declarations · Reimbursement · Bank details</td><td>salary, payslip, PF, tax, TDS, deduction, reimbursement, claim, not credited, bonus, arrears</td><td>Payroll / Finance</td></tr>
+      <tr><td><b>Operations</b></td><td>Facilities · Procurement &amp; assets · Travel · Vendor · Safety</td><td>chair, AC, housekeeping, stationery, ID card, cab, booking, purchase, vendor, unsafe</td><td>Admin &amp; Facilities</td></tr>
+      <tr><td><b>Other</b></td><td>Unclassified · Cross-functional · Suggestion</td><td>— (no confident match)</td><td>Triage desk</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>How classification actually decides</h4>
+  <ol>
+    <li><strong>Explicit override.</strong> If the requester picked a category in the portal, it is used as-is with confidence <code>1.0</code>. Humans get the benefit of the doubt.</li>
+    <li><strong>Weighted keyword scoring.</strong> Each department carries a scored lexicon; subject-line hits weigh double body hits. Fast, transparent, auditable — and this alone handles the majority of traffic.</li>
+    <li><strong>LLM intent classification</strong> runs in parallel on free-text channels, returning a category, a confidence and a one-line reason. Where both agree, confidence is boosted.</li>
+    <li><strong>Confidence bands.</strong> <span class="pill p3">≥ 0.75</span> auto-route silently · <span class="pill p2">0.45 – 0.75</span> auto-route but flag for the group lead to confirm · <span class="pill p1">&lt; 0.45</span> hold in triage for a human.</li>
+    <li><strong>Every reclassification is training data.</strong> When an agent moves a ticket to another department, the original text, the wrong prediction and the correct label are written to a review set the lexicon and prompt are tuned against monthly.</li>
+  </ol>
+
+  <div class="callout"><p><strong>Why not pure AI classification:</strong> a keyword layer that a non-technical HR lead can read and edit is worth more in year one than three points of accuracy. When Payroll adds a new claim type, they add words to a list — no retraining, no engineer, no deploy. The model handles what the list cannot.</p></div>
+</section>
+
+<hr class="rule">
+<section id="routing">
+  <h2><span class="num">04</span>Routing &amp; assignment</h2>
+  <p class="lede">Category answers <em>which team</em>. Routing answers <em>which person, by when, and who covers if they are away</em> — the part that fragmented channels never answered at all.</p>
+
+  <div class="sheet">
+    <div class="sheet-cap">Fig. 03 — Routing decision tree</div>
+    <div class="sheet-body">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"fontFamily":"ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif","fontSize":"13px","primaryColor":"#FFFFFF","primaryTextColor":"#161A21","primaryBorderColor":"#8A9199","lineColor":"#6B7280"}}}%%
+flowchart TB
+  ST["Classified ticket"] --> SEC{"Confidential?<br/>grievance · payroll dispute<br/>· investigation"}
+  SEC -->|Yes| PRIV["Restricted queue<br/>named handlers only<br/>manager visibility OFF"]
+  SEC -->|No| APR
+  APR{"Needs approval<br/>before work starts?"}
+  APR -->|"Yes — leave, spend,<br/>access elevation"| MGR["Route to reporting manager<br/>SLA clock paused<br/>auto-reminder at 24h"]
+  MGR --> APD{"Approved?"}
+  APD -->|No| REJ["Closed — Not approved<br/>reason returned to requester"]
+  APD -->|"No response 72h"| SKIP["Escalate to skip-level<br/>manager"]
+  APD -->|Yes| GRP
+  APR -->|No| GRP
+  PRIV --> GRP
+  GRP["Resolve skill group<br/>from category + site"] --> MAJ{"Matches an open<br/>major incident?"}
+  MAJ -->|Yes| CHILD["Link as child ticket<br/>updates broadcast from parent"]
+  MAJ -->|No| CAP
+  CAP{"Any agent in group<br/>available &amp; under<br/>load cap?"}
+  CAP -->|Yes| ASG["Assign to lowest<br/>weighted open load<br/><i>P1=5 · P2=3 · P3=2 · P4=1</i>"]
+  CAP -->|"No — all at cap<br/>or out of hours"| QUE["Group backlog queue<br/>ordered by SLA due<br/>lead notified if depth &gt; 10"]
+  QUE -->|"agent frees up"| ASG
+  ASG --> ACK["Acknowledge requester<br/>on their original channel<br/>with ticket ID + ETA"]
+  style PRIV fill:#F7E3DF,stroke:#9E2E1C
+  style ASG fill:#E2EFEC,stroke:#0F5E5A
+  style ACK fill:#E2EFEC,stroke:#0F5E5A
+  style QUE fill:#F6EBD9,stroke:#9A5B00
+  style REJ fill:#F6EBD9,stroke:#9A5B00
+</pre>
+    </div>
+  </div>
+
+  <h3>Assignment rules, in precedence order</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Rule</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td class="num-col">1</td><td>Continuity</td><td>A reopened ticket returns to the agent who resolved it, if they are available. Context beats load balance.</td></tr>
+      <tr><td class="num-col">2</td><td>Specialisation</td><td>Certain types are hard-pinned — security incidents to the security handler, bank-detail changes to a named payroll officer. No round-robin.</td></tr>
+      <tr><td class="num-col">3</td><td>Site &amp; language</td><td>Prefer an agent on the requester's site or shift and able to reply in their language; fall back to the central group.</td></tr>
+      <tr><td class="num-col">4</td><td>Weighted load</td><td>Lowest sum of open-ticket weights, so one P1 is not treated as equal to one P4.</td></tr>
+      <tr><td class="num-col">5</td><td>Availability</td><td>Agents on leave or off-shift are excluded via the same HRIS calendar that drives SLA. No ticket sits with someone on holiday.</td></tr>
+      <tr><td class="num-col">6</td><td>Fallback</td><td>If the group is empty or capped, the ticket goes to the group's backlog with the lead as accountable owner — never to nobody.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><p><strong>The accountability rule:</strong> a ticket always has exactly one accountable human. When it cannot be an agent, it is the group lead. This single constraint is what closes the "ambiguous ownership" gap named in the brief.</p></div>
+</section>
+
+<hr class="rule">
+<section id="priority">
+  <h2><span class="num">05</span>Priority matrix &amp; SLA</h2>
+  <p class="lede">Priority is computed, not requested. Impact and urgency are collected as plain-language answers and resolved through a fixed matrix.</p>
+
+  <h4>Impact × urgency → priority</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>Impact ↓ / Urgency →</th><th>Blocked entirely</th><th>Most work blocked</th><th>Some work affected</th><th>Nothing blocked</th></tr></thead>
+    <tbody>
+      <tr><td><b>Company / site-wide</b></td><td><span class="pill p1">P1</span></td><td><span class="pill p1">P1</span></td><td><span class="pill p2">P2</span></td><td><span class="pill p3">P3</span></td></tr>
+      <tr><td><b>Whole team</b></td><td><span class="pill p1">P1</span></td><td><span class="pill p2">P2</span></td><td><span class="pill p2">P2</span></td><td><span class="pill p3">P3</span></td></tr>
+      <tr><td><b>A few people</b></td><td><span class="pill p2">P2</span></td><td><span class="pill p2">P2</span></td><td><span class="pill p3">P3</span></td><td><span class="pill p4">P4</span></td></tr>
+      <tr><td><b>Only me</b></td><td><span class="pill p2">P2</span></td><td><span class="pill p3">P3</span></td><td><span class="pill p3">P3</span></td><td><span class="pill p4">P4</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Overrides applied after the matrix</h4>
+  <ul>
+    <li><strong>Safety, harassment or security keywords</strong> force a minimum of P1 regardless of what the requester selected.</li>
+    <li><strong>Statutory deadlines</strong> (tax declaration windows, statutory leave notice, full-and-final settlement) force P2 and set a hard calendar due date that overrides the rolling SLA.</li>
+    <li><strong>Payroll cut-off proximity</strong> — any salary-affecting request raises one level inside the three working days before payroll processing.</li>
+    <li><strong>Repeat contact</strong> — a third follow-up on the same ticket raises priority one level and notifies the group lead. Chasing is a signal, not noise.</li>
+  </ul>
+
+  <h4>Service level targets (business hours, requester's site calendar)</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>Priority</th><th>Acknowledge</th><th>First human response</th><th>Resolve</th><th>Update cadence</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill p1">P1 Critical</span></td><td class="num-col">Instant, automated</td><td class="num-col">15 min</td><td class="num-col">4 h</td><td class="num-col">Hourly</td></tr>
+      <tr><td><span class="pill p2">P2 High</span></td><td class="num-col">Instant, automated</td><td class="num-col">2 h</td><td class="num-col">1 business day</td><td class="num-col">Daily</td></tr>
+      <tr><td><span class="pill p3">P3 Normal</span></td><td class="num-col">Instant, automated</td><td class="num-col">8 h</td><td class="num-col">3 business days</td><td class="num-col">Every 2 days</td></tr>
+      <tr><td><span class="pill p4">P4 Low</span></td><td class="num-col">Instant, automated</td><td class="num-col">1 business day</td><td class="num-col">5 business days</td><td class="num-col">On change</td></tr>
+    </tbody>
+  </table></div>
+  <p>The clock runs on business hours and pauses in exactly two states: <code>Awaiting Requester</code> and <code>Awaiting Approval</code>. It does not pause for <code>Awaiting Third Party</code> — a vendor's delay is still the organisation's delay, and hiding it behind a paused clock is how SLA reporting becomes fiction.</p>
+</section>
+
+<hr class="rule">
+<section id="escalation">
+  <h2><span class="num">06</span>Escalation protocols</h2>
+  <p class="lede">Escalation is time-triggered and automatic. Nobody has to notice a problem for the ladder to start climbing — which is the entire point, since "nobody noticed" is the current failure mode.</p>
+
+  <div class="sheet">
+    <div class="sheet-cap">Fig. 04 — Escalation ladder</div>
+    <div class="sheet-body">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"fontFamily":"ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif","fontSize":"13px","primaryColor":"#FFFFFF","primaryTextColor":"#161A21","primaryBorderColor":"#8A9199","lineColor":"#6B7280"}}}%%
+flowchart TB
+  CLK["SLA monitor<br/><i>evaluates every open ticket every 5 min</i>"] --> C50
+  C50{"50% of resolve<br/>SLA consumed"}
+  C50 -->|Yes| L0["<b>L0 · Nudge</b><br/>Reminder to assignee<br/>Requester sees a status update"]
+  L0 --> C75
+  C50 -->|No| C75
+  C75{"75% consumed"}
+  C75 -->|Yes| L1["<b>L1 · Supervisor</b><br/>Group lead notified<br/>Ticket flagged AT RISK on dashboard<br/>Lead may reassign"]
+  L1 --> C100
+  C75 -->|No| C100
+  C100{"100% — SLA breached"}
+  C100 -->|Yes| L2["<b>L2 · Department head</b><br/>Breach recorded permanently<br/>Auto-reassign if untouched 2h<br/>Requester told, with a new ETA"]
+  L2 --> C150
+  C100 -->|No| OK["Within SLA<br/>no action"]
+  C150{"150% — or P1<br/>past 2h"}
+  C150 -->|Yes| L3["<b>L3 · Executive</b><br/>COO / CHRO daily breach digest<br/>Written root-cause required to close"]
+  P1S["<b>Bypass:</b> any P1 raised<br/>out of business hours"] -.->|"page on-call immediately"| L1
+  MAJ["<b>Bypass:</b> 5+ similar tickets<br/>within 30 min"] -.->|"declare major incident"| L2
+  style L0 fill:#F6EBD9,stroke:#9A5B00
+  style L1 fill:#F6EBD9,stroke:#9A5B00
+  style L2 fill:#F7E3DF,stroke:#9E2E1C
+  style L3 fill:#F7E3DF,stroke:#9E2E1C
+  style OK fill:#E2EFEC,stroke:#0F5E5A
+</pre>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><span class="k">Trigger type A</span><h5>Time-based</h5><p>The four rungs above, driven purely by percentage of SLA consumed. Fully automatic.</p></div>
+    <div class="card"><span class="k">Trigger type B</span><h5>Severity-based</h5><p>P1 skips L0 entirely and pages the on-call handler the moment it is created, including out of hours.</p></div>
+    <div class="card"><span class="k">Trigger type C</span><h5>Volume-based</h5><p>Five or more similar tickets in 30 minutes declares a major incident, creates a parent ticket, and broadcasts one update to all linked requesters.</p></div>
+    <div class="card"><span class="k">Trigger type D</span><h5>Sentiment &amp; repetition</h5><p>Third follow-up, or negative sentiment detected on a reply, raises priority a level and pings the lead — before the complaint reaches HR informally.</p></div>
+  </div>
+
+  <div class="callout"><p><strong>Escalation is not reassignment.</strong> The ladder adds watchers and accountability; it only takes the ticket away at L2, and only if the assignee has not touched it for two hours after breach. Punishing agents by yanking work at the first nudge produces silent SLA gaming, not faster resolution.</p></div>
+</section>
+
+<hr class="rule">
+<section id="states">
+  <h2><span class="num">07</span>State transition lifecycle</h2>
+  <p class="lede">The brief asks for Open, Active and Finalized. Those are the three states the <em>requester</em> sees. Internally each expands into the sub-states an agent actually needs, so that "why has nothing happened" always has a truthful answer.</p>
+
+  <div class="sheet">
+    <div class="sheet-cap">Fig. 05 — State machine <span>internal states, mapped to the three public ones</span></div>
+    <div class="sheet-body">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"fontFamily":"ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif","fontSize":"13px","primaryColor":"#FFFFFF","primaryTextColor":"#161A21","primaryBorderColor":"#8A9199","lineColor":"#6B7280"}}}%%
+stateDiagram-v2
+  direction TB
+  [*] --> Submitted
+  Submitted --> Triage : low classifier confidence
+  Submitted --> Open : classified &amp; routed
+  Triage --> Open : human sets category
+  Triage --> Duplicate : matches existing ticket
+  Open --> AwaitingApproval : approval gate
+  AwaitingApproval --> Open : approved
+  AwaitingApproval --> Rejected : declined
+  Open --> Active : agent begins work
+  Active --> AwaitingRequester : needs info — clock pauses
+  AwaitingRequester --> Active : requester replies
+  AwaitingRequester --> Finalized : no reply in 5 business days
+  Active --> AwaitingThirdParty : vendor dependency — clock runs
+  AwaitingThirdParty --> Active : dependency cleared
+  Active --> Resolved : fix delivered
+  Resolved --> Finalized : confirmed, or 72h silence
+  Resolved --> Active : requester disputes — reopen
+  Finalized --> Active : reopened within 14 days
+  Open --> Cancelled : requester withdraws
+  Active --> Cancelled : requester withdraws
+  Rejected --> [*]
+  Duplicate --> [*]
+  Cancelled --> [*]
+  Finalized --> [*]
+</pre>
+    </div>
+  </div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Requester sees</th><th>Internal states</th><th>SLA clock</th><th>Who is accountable</th></tr></thead>
+    <tbody>
+      <tr><td><b>Open</b><br/><span style="color:var(--muted)">"Received, being assigned"</span></td><td>Submitted · Triage · Open · Awaiting Approval</td><td>Running (paused during approval)</td><td>Triage desk, then assigned agent, then approving manager</td></tr>
+      <tr><td><b>Active</b><br/><span style="color:var(--muted)">"Someone is working on it"</span></td><td>Active · Awaiting Requester · Awaiting Third Party</td><td>Running, except Awaiting Requester</td><td>Assigned agent</td></tr>
+      <tr><td><b>Finalized</b><br/><span style="color:var(--muted)">"Done"</span></td><td>Resolved · Finalized · Cancelled · Rejected · Duplicate</td><td>Stopped</td><td>Group lead, for quality review</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Transition rules that are enforced, not conventional</h4>
+  <ul>
+    <li>A ticket cannot reach <code>Resolved</code> without a <strong>resolution code</strong> and a resolution note. This is what makes reporting possible at all.</li>
+    <li><code>Finalized</code> is immutable. A reopen inside 14 days reactivates the <em>same</em> ID with a reopen counter; after 14 days a new ticket is created and linked. Reopen rate then becomes a real quality metric.</li>
+    <li>Every transition writes an <strong>append-only audit entry</strong>: who, when, from, to, why. Nothing in the ticket's history can be edited or deleted.</li>
+    <li>Auto-close on requester silence always sends two warnings first (day 3 and day 5) and can be undone by a single reply.</li>
+  </ul>
+</section>
+
+<hr class="rule">
+<section id="resolution">
+  <h2><span class="num">08</span>Resolution pathway</h2>
+  <p class="lede">Closure is a verified event, not an agent's opinion. Three things must be true before a ticket finalises: the work is done, it is coded, and the requester has been told on the channel they used.</p>
+  <div class="cards">
+    <div class="card"><span class="k">Step 1</span><h5>Resolution recorded</h5><p>Agent writes the outcome and picks a resolution code — Fixed, Configuration change, Policy answer, Not eligible, Duplicate, No response, Cancelled.</p></div>
+    <div class="card"><span class="k">Step 2</span><h5>Requester notified</h5><p>Reply lands on the original channel. WhatsApp requests get a WhatsApp answer; nobody is forced into a portal to read their outcome.</p></div>
+    <div class="card"><span class="k">Step 3</span><h5>Confirmation window</h5><p>72 hours to dispute with one tap. Silence finalises. A dispute reopens the same ID and returns it to the same agent.</p></div>
+    <div class="card"><span class="k">Step 4</span><h5>Feedback captured</h5><p>One question — was this resolved? — plus optional comment. Scores roll up per group, never per individual agent, to avoid gaming.</p></div>
+    <div class="card"><span class="k">Step 5</span><h5>Knowledge harvested</h5><p>Repeated resolution patterns are drafted into knowledge-base articles, which then power deflection at intake.</p></div>
+    <div class="card"><span class="k">Step 6</span><h5>Archived</h5><p>Ticket locked, retained per policy (payroll and grievance records held longer), and available read-only for audit.</p></div>
+  </div>
+</section>
+
+<hr class="rule">
+<section id="scenarios">
+  <h2><span class="num">09</span>Scenario catalogue</h2>
+  <p class="lede">Twenty-two cases the system must handle correctly. The happy path is one row; the other twenty-one are where a design either holds or falls apart.</p>
+
+  <div class="tbl"><table>
+    <thead><tr><th>ID</th><th>Scenario</th><th>System behaviour</th><th>Ends as</th></tr></thead>
+    <tbody>
+      <tr><td class="id">S-01</td><td>Portal request, clear category, in hours</td><td>Classified at confidence 1.0, routed, assigned, acknowledged in seconds.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-02</td><td>WhatsApp free text: "salary less this month"</td><td>Classifier returns Payroll at 0.82 → auto-routed. Bot replies with ticket ID on WhatsApp.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-03</td><td>Ambiguous: "system not letting me apply leave"</td><td>Scores split HR / IT below 0.45 → Triage queue. Human tags IT (portal defect), classifier learns.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-04</td><td>Misrouted — HR receives an IT ticket</td><td>Agent reclassifies; SLA clock continues on the original submission time, never resets. Reroute logged.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-05</td><td>Duplicate — same person asks twice on two channels</td><td>Near-duplicate detection merges the second as a comment; requester told both are the same ticket.</td><td>Duplicate</td></tr>
+      <tr><td class="id">S-06</td><td>Leave request needing manager approval</td><td>Routed to manager, clock paused, reminder at 24h, skip-level escalation at 72h.</td><td>Finalized / Rejected</td></tr>
+      <tr><td class="id">S-07</td><td>Manager never responds to approval</td><td>At 72h it escalates to skip-level with the delay recorded against the original manager.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-08</td><td>Agent asks for information; requester goes quiet</td><td>Awaiting Requester pauses the clock. Warnings on day 3 and 5, auto-close on day 5, reopenable by one reply.</td><td>Finalized (No response)</td></tr>
+      <tr><td class="id">S-09</td><td>SLA breached on a P2</td><td>L0 → L1 → L2 fire automatically. Breach is permanent in the record and appears in the daily digest.</td><td>Finalized, breach flagged</td></tr>
+      <tr><td class="id">S-10</td><td>P1 raised at 11pm</td><td>Time-based ladder bypassed; on-call handler paged immediately; clock runs on 24×7 not business hours.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-11</td><td>Site-wide outage — 40 tickets in 20 minutes</td><td>Volume trigger declares a major incident, creates a parent, links children, broadcasts one update to all.</td><td>Bulk Finalized</td></tr>
+      <tr><td class="id">S-12</td><td>Assigned agent goes on unplanned leave</td><td>HRIS availability change triggers reassignment of all their open tickets to the group, lead notified.</td><td>Reassigned</td></tr>
+      <tr><td class="id">S-13</td><td>Every agent in the group is at load cap</td><td>Ticket enters the group backlog ordered by SLA due date; lead is accountable and alerted past depth 10.</td><td>Queued → assigned</td></tr>
+      <tr><td class="id">S-14</td><td>Confidential grievance about a manager</td><td>Restricted queue, named handlers only, manager visibility suppressed, separate retention rule.</td><td>Finalized, restricted</td></tr>
+      <tr><td class="id">S-15</td><td>Requester attaches a payslip or ID document</td><td>Attachment scanned, card and government-ID patterns redacted from the ticket body, access scoped to handlers.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-16</td><td>Message in a regional language or mixed script</td><td>Language detected, translated for classification, agent replies in the requester's language; original text preserved.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-17</td><td>Unknown WhatsApp number, not in HRIS</td><td>Unverified queue; bot requests employee ID; auto-dropped after 48h with no valid identity.</td><td>Dropped</td></tr>
+      <tr><td class="id">S-18</td><td>Requester disputes the resolution</td><td>One tap reopens the same ticket ID, returns it to the same agent, increments the reopen counter.</td><td>Reopened → Finalized</td></tr>
+      <tr><td class="id">S-19</td><td>Requester withdraws the request</td><td>Cancelled with a reason. Excluded from SLA statistics but counted in volume.</td><td>Cancelled</td></tr>
+      <tr><td class="id">S-20</td><td>Request blocked on an external vendor</td><td>Awaiting Third Party — visible as blocked, but the clock keeps running so the delay stays honest.</td><td>Finalized, delay attributed</td></tr>
+      <tr><td class="id">S-21</td><td>Payroll query filed one day before cut-off</td><td>Priority raised one level automatically; a hard calendar due date replaces the rolling SLA.</td><td>Finalized</td></tr>
+      <tr><td class="id">S-22</td><td>Third follow-up on the same open ticket</td><td>Priority raised one level, group lead notified, ticket flagged for a proactive call.</td><td>Finalized</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr class="rule">
+<section id="exceptions">
+  <h2><span class="num">10</span>Failure modes of the system itself</h2>
+  <p class="lede">A workflow diagram that only shows the pipeline working is a marketing diagram. These are the ways the pipeline breaks and what happens then.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Failure</th><th>Detection</th><th>Fallback</th></tr></thead>
+    <tbody>
+      <tr><td>Channel adapter down (WhatsApp API outage)</td><td>Heartbeat per adapter; no messages for 15 min during business hours raises an alert</td><td>Auto-reply on that channel names the portal and the helpline; queued messages replay on recovery, timestamped at original receipt so SLA is not penalised to the requester's cost.</td></tr>
+      <tr><td>Classifier unavailable or degraded</td><td>Timeout or confidence collapse across a window</td><td>Fall back to keyword-only scoring; if that also fails, everything lands in Triage. The system degrades to "manual but visible" — never to "lost".</td></tr>
+      <tr><td>HRIS lookup fails</td><td>Identity resolution error</td><td>Ticket still created with the raw sender identity and an <code>identity_unverified</code> flag; enriched retroactively when HRIS returns.</td></tr>
+      <tr><td>Notification delivery fails</td><td>Bounce or delivery webhook</td><td>Retry with backoff, then fall back to the next channel on the requester's contact chain; failure is visible on the ticket, not silent.</td></tr>
+      <tr><td>Duplicate ticket created by a retry</td><td>Idempotency key on channel message ID</td><td>Second creation is rejected and returns the existing ticket ID.</td></tr>
+      <tr><td>Agents gaming SLA by resolving early and reopening</td><td>Reopen rate per group tracked as a first-class metric</td><td>Reopens count against the original resolution, not as new tickets. Measured, and reviewed at group not individual level.</td></tr>
+      <tr><td>Nobody adopts the system; WhatsApp-to-manager persists</td><td>Channel mix report; a manager forwarding on someone's behalf is flagged</td><td>Managers get a one-tap "log this for my report" action rather than being told off. Adoption is designed for, not mandated.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr class="rule">
+<section id="metrics">
+  <h2><span class="num">11</span>What gets measured</h2>
+  <p class="lede">The brief's fourth inefficiency is "suboptimal reporting". These are the numbers the design makes possible, mapped back to the problem each one closes.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Metric</th><th>Definition</th><th>Closes which gap</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>Capture rate</td><td>% of requests entering the system vs. informal channels sampled</td><td>Lack of visibility</td><td class="num-col">&gt; 90% by month 6</td></tr>
+      <tr><td>Time to acknowledge</td><td>Creation → automated confirmation</td><td>Latent response times</td><td class="num-col">&lt; 60 sec</td></tr>
+      <tr><td>Time to first response</td><td>Creation → first human reply</td><td>Latent response times</td><td class="num-col">Per SLA, 95%</td></tr>
+      <tr><td>SLA attainment</td><td>% resolved within target, by priority and department</td><td>Accountability gaps</td><td class="num-col">&ge; 95%</td></tr>
+      <tr><td>Auto-classification accuracy</td><td>1 − (reclassified ÷ total classified)</td><td>Manual triaging delay</td><td class="num-col">&ge; 85%</td></tr>
+      <tr><td>Triage share</td><td>% of tickets needing a human to categorise</td><td>Manual triaging delay</td><td class="num-col">&lt; 15%</td></tr>
+      <tr><td>Reopen rate</td><td>Reopened ÷ resolved, per group</td><td>Data inconsistency / quality</td><td class="num-col">&lt; 8%</td></tr>
+      <tr><td>Escalation rate</td><td>% reaching L1 or beyond</td><td>Accountability gaps</td><td class="num-col">&lt; 10%</td></tr>
+      <tr><td>Deflection rate</td><td>% resolved by knowledge-base answer at intake</td><td>Volume &amp; cost</td><td class="num-col">15–25%</td></tr>
+      <tr><td>Backlog age</td><td>Oldest open ticket per group</td><td>Attrition of requests</td><td class="num-col">No P1/P2 &gt; SLA</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  <div>Part 1 of 3 — Workflow Design</div>
+  <div>Parts 2 &amp; 3: functional prototype, solution summary</div>
+</footer>
+</main>
+</div>
+
+<script src="lib/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,securityLevel:"loose"});</script>
+</body>
+</html>

@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReqDesk Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F7F6F3; --surface:#FFFFFF; --surface-2:#F1EFEA; --surface-3:#E9E6DF;
+  --ink:#161A21; --ink-2:#3A424E; --muted:#5C6472; --line:#DBD7CF; --line-2:#EAE7E0;
+  --accent:#0F5E5A; --accent-ink:#0F5E5A; --accent-soft:#E2EFEC; --on-accent:#FFFFFF;
+  --amber:#9A5B00; --amber-soft:#F6EBD9;
+  --crit:#9E2E1C; --crit-soft:#F7E3DF;
+  --ok:#2C6B3F; --ok-soft:#E3EFE6;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#12151A; --surface:#191D24; --surface-2:#20252D; --surface-3:#272D36;
+  --ink:#E7EAEF; --ink-2:#C0C7D1; --muted:#8E97A5; --line:#2C333D; --line-2:#232931;
+  --accent:#2E8078; --accent-ink:#5CBBAD; --accent-soft:#12302E; --on-accent:#FFFFFF;
+  --amber:#D89A3E; --amber-soft:#2E2517;
+  --crit:#E08272; --crit-soft:#331C18;
+  --ok:#6FB287; --ok-soft:#17291E;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151A; --surface:#191D24; --surface-2:#20252D; --surface-3:#272D36;
+  --ink:#E7EAEF; --ink-2:#C0C7D1; --muted:#8E97A5; --line:#2C333D; --line-2:#232931;
+  --accent:#2E8078; --accent-ink:#5CBBAD; --accent-soft:#12302E; --on-accent:#FFFFFF;
+  --amber:#D89A3E; --amber-soft:#2E2517;
+  --crit:#E08272; --crit-soft:#331C18;
+  --ok:#6FB287; --ok-soft:#17291E;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---- chrome ---- */
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1320px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:20px;
+  min-height:56px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px;margin-right:4px}
+.brand b{font-family:"Newsreader",Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.brand i{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent-ink)}
+.tabs{display:flex;gap:2px;flex:1;flex-wrap:wrap}
+.tab{background:none;border:0;padding:9px 13px;border-radius:2px;color:var(--muted);cursor:pointer;
+  font-size:13.5px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent-ink)}
+.clockbox{display:flex;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:11px;
+  color:var(--muted);padding:5px 0}
+.clockbox b{color:var(--ink);font-weight:500}
+
+.page{max-width:1320px;margin:0 auto;padding:26px 20px 80px}
+.pagehead{margin:0 0 20px}
+.pagehead h1{font-family:"Newsreader",Georgia,serif;font-size:27px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.pagehead p{margin:0;color:var(--muted);font-size:14px;max-width:74ch}
+
+/* ---- primitives ---- */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:3px}
+.panel-h{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.panel-h h2{font-size:13px;font-weight:600;margin:0;letter-spacing:.01em}
+.panel-h .sub{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.panel-b{padding:16px}
+.grid{display:grid;gap:16px}
+label.f{display:block;margin-bottom:14px}
+label.f>span{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+input[type=text],textarea,select{width:100%;background:var(--ground);border:1px solid var(--line);
+  border-radius:2px;padding:8px 10px;font-size:14px}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent-ink)}
+textarea{resize:vertical;min-height:88px;line-height:1.5}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.btn{background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);border-radius:2px;
+  padding:9px 16px;font-size:13.5px;font-weight:500;cursor:pointer}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line)}
+.btn.ghost:hover{background:var(--surface-2);filter:none;color:var(--ink)}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:500;
+  letter-spacing:.07em;padding:2px 7px;border-radius:2px;border:1px solid;white-space:nowrap}
+.P1{background:var(--crit-soft);color:var(--crit);border-color:var(--crit)}
+.P2{background:var(--amber-soft);color:var(--amber);border-color:var(--amber)}
+.P3{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-ink)}
+.P4{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+.st{background:var(--surface-2);color:var(--ink-2);border-color:var(--line)}
+.st-active{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-ink)}
+.st-final{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.st-wait{background:var(--amber-soft);color:var(--amber);border-color:var(--amber)}
+.st-risk{background:var(--crit-soft);color:var(--crit);border-color:var(--crit)}
+
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:900px;font-size:13px}
+th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);font-weight:500;padding:9px 12px;
+  border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap;position:sticky;top:0}
+td{padding:9px 12px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.sel{background:var(--accent-soft)}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.tid{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent-ink);cursor:pointer;
+  background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:2px}
+
+/* sla bar */
+.sla{min-width:120px}
+.sla .bar{height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden}
+.sla .fill{height:100%;background:var(--ok);border-radius:2px}
+.sla .fill.w{background:var(--amber)} .sla .fill.c{background:var(--crit)}
+.sla .lab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:3px;
+  font-variant-numeric:tabular-nums}
+
+/* classifier preview */
+.score{display:grid;grid-template-columns:78px 1fr 34px;gap:8px;align-items:center;margin-bottom:6px;
+  font-size:12px}
+.score .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2)}
+.score .t{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden}
+.score .t i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.score .v{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);text-align:right;
+  font-variant-numeric:tabular-nums}
+.verdict{border:1px solid var(--line);border-left-width:2px;border-radius:2px;padding:10px 12px;
+  background:var(--ground);font-size:13px;margin-top:12px}
+.verdict.auto{border-left-color:var(--ok)} .verdict.rev{border-left-color:var(--amber)}
+.verdict.tri{border-left-color:var(--crit)}
+.verdict b{display:block;font-size:12px;margin-bottom:3px}
+.kw{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;background:var(--accent-soft);
+  color:var(--accent-ink);border:1px solid var(--accent-ink);border-radius:2px;padding:1px 5px;margin:2px 3px 0 0}
+
+/* stats */
+.stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:14px 16px}
+.stat .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--muted);display:block;margin-bottom:6px}
+.stat .v{font-family:"Newsreader",Georgia,serif;font-size:30px;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat .d{font-size:11.5px;color:var(--muted);margin-top:5px}
+.stat.warn .v{color:var(--crit)}
+.barlist{display:grid;gap:9px}
+.barrow{display:grid;grid-template-columns:100px 1fr 52px;gap:10px;align-items:center;font-size:12.5px}
+.barrow .t{height:14px;background:var(--surface-2);border-radius:2px;overflow:hidden}
+.barrow .t i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.barrow .v{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);text-align:right;
+  font-variant-numeric:tabular-nums}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,12,16,.42);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--surface);
+  border-left:1px solid var(--line);z-index:41;display:flex;flex-direction:column;overflow:hidden}
+.drawer-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+  align-items:flex-start;gap:12px}
+.drawer-b{padding:20px;overflow-y:auto;flex:1}
+.drawer-h h3{margin:0 0 3px;font-size:16px;font-weight:600}
+.x{background:none;border:1px solid var(--line);border-radius:2px;width:28px;height:28px;cursor:pointer;
+  color:var(--muted);font-size:15px;line-height:1;flex:none}
+.dl{display:grid;grid-template-columns:112px 1fr;gap:6px 14px;font-size:13px;margin:0 0 18px}
+.dl dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);padding-top:2px}
+.dl dd{margin:0;color:var(--ink-2)}
+h4.sec{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;margin:22px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--line-2)}
+.audit{list-style:none;padding:0;margin:0;font-size:12.5px}
+.audit li{padding:0 0 11px 16px;border-left:1px solid var(--line);position:relative;margin-left:3px}
+.audit li:before{content:"";position:absolute;left:-3.5px;top:6px;width:6px;height:6px;border-radius:50%;
+  background:var(--accent-ink)}
+.audit li:last-child{border-left-color:transparent}
+.audit .w{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:1px}
+
+.note{background:var(--amber-soft);border:1px solid var(--amber);border-left-width:2px;border-radius:2px;
+  padding:11px 14px;font-size:13px;color:var(--ink-2);margin:0 0 18px}
+.note b{color:var(--ink)}
+.empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:13.5px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:60;background:var(--ink);
+  color:var(--ground);padding:10px 18px;border-radius:3px;font-size:13.5px;box-shadow:0 6px 24px rgba(0,0,0,.22)}
+.hidden{display:none!important}
+.cols{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:960px){.cols.s21{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+  .cols.s11{grid-template-columns:1fr 1fr}}
+.two{display:grid;gap:0 14px;grid-template-columns:1fr 1fr}
+@media(max-width:520px){.two{grid-template-columns:1fr}}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filters select{width:auto;min-width:120px;padding:5px 8px;font-size:12.5px}
+.legend{font-size:12px;color:var(--muted);margin-top:10px}
+</style>
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>ReqDesk</b><i>Prototype</i></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-v="submit" aria-selected="true">Submit a request</button>
+      <button class="tab" role="tab" data-v="mine" aria-selected="false">My requests</button>
+      <button class="tab" role="tab" data-v="console" aria-selected="false">Agent console</button>
+      <button class="tab" role="tab" data-v="analytics" aria-selected="false">Analytics</button>
+      <button class="tab" role="tab" data-v="about" aria-selected="false">How it works</button>
+    </div>
+    <div class="clockbox">
+      <span>Sim clock <b id="clk">—</b></span>
+      <button class="btn ghost sm" id="adv4">+4h</button>
+      <button class="btn ghost sm" id="adv24">+24h</button>
+      <button class="btn ghost sm" id="reset">Reset demo</button>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- ============ SUBMIT ============ -->
+<div id="v-submit">
+  <div class="pagehead"><h1>Submit a request</h1>
+    <p>One entry point for HR, IT, Payroll and Operations. Choosing a category is optional — describe the problem and the classifier will route it. The panel on the right shows what the system decides, live, as you type.</p></div>
+  <div class="cols s21">
+    <div class="panel"><div class="panel-h"><h2>Request details</h2><span class="sub" id="chanlab">Portal</span></div>
+      <div class="panel-b">
+        <div class="two">
+          <label class="f"><span>Submitting as</span><select id="f-who"></select></label>
+          <label class="f"><span>Arriving via</span><select id="f-chan">
+            <option>Portal</option><option>WhatsApp</option><option>Email</option><option>SMS</option><option>Teams</option><option>Walk-in</option>
+          </select><div class="hint">Simulates the omni-channel adapters.</div></label>
+        </div>
+        <label class="f"><span>Subject</span><input type="text" id="f-sub" placeholder="e.g. Cannot log in to the leave portal" autocomplete="off"></label>
+        <label class="f"><span>Describe what you need</span><textarea id="f-body" placeholder="Write it however you'd say it to a colleague."></textarea></label>
+        <div class="two">
+          <label class="f"><span>Who is affected</span><select id="f-imp">
+            <option value="0">Only me</option><option value="1">A few people</option><option value="2">My whole team</option><option value="3">My site or the company</option>
+          </select></label>
+          <label class="f"><span>What is blocked</span><select id="f-urg">
+            <option value="0">Nothing — can wait</option><option value="1">Some of my work</option><option value="2">Most of my work</option><option value="3">I am blocked entirely</option>
+          </select></label>
+        </div>
+        <label class="f"><span>Category (optional)</span><select id="f-cat">
+          <option value="">Let the system decide</option><option>HR</option><option>IT</option><option>Payroll</option><option>Operations</option><option>Other</option>
+        </select><div class="hint">If you pick one it is taken as an override at full confidence.</div></label>
+        <div class="row"><button class="btn" id="go">Submit request</button>
+          <button class="btn ghost" id="demo">Fill an example</button></div>
+      </div>
+    </div>
+
+    <div class="panel"><div class="panel-h"><h2>Live classification</h2><span class="sub">Step 2 of the pipeline</span></div>
+      <div class="panel-b">
+        <div id="scores"></div>
+        <div id="verdict"></div>
+        <h4 class="sec">Computed priority &amp; SLA</h4>
+        <dl class="dl">
+          <dt>Priority</dt><dd id="pv">—</dd>
+          <dt>Resolve target</dt><dd id="sv">—</dd>
+          <dt>First response</dt><dd id="rv">—</dd>
+          <dt>Routes to</dt><dd id="gv">—</dd>
+        </dl>
+        <div class="legend">Priority comes from the impact × urgency matrix, never from a self-declared urgency field. Safety and security wording forces P1 regardless.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MINE ============ -->
+<div id="v-mine" class="hidden">
+  <div class="pagehead"><h1>My requests</h1><p>What the employee sees: three plain states — Open, Active, Finalized — and a truthful reason whenever something is waiting.</p></div>
+  <div class="panel"><div class="panel-h"><h2>Requests raised by <span id="whoName">—</span></h2>
+    <div class="filters"><select id="mineWho"></select></div></div>
+    <div class="tblwrap"><table><thead><tr>
+      <th>Ticket</th><th>Subject</th><th>Category</th><th>Status</th><th>Priority</th><th>Raised</th><th>Time left</th>
+    </tr></thead><tbody id="mineRows"></tbody></table></div>
+    <div id="mineEmpty" class="empty hidden">No requests yet. Submit one from the first tab.</div>
+  </div>
+</div>
+
+<!-- ============ CONSOLE ============ -->
+<div id="v-console" class="hidden">
+  <div class="pagehead"><h1>Agent console</h1><p>What a service-desk agent or group lead sees. Rows breaching or at risk of breaching SLA carry a stripe. Use the sim clock in the header to advance time and watch the escalation ladder fire.</p></div>
+  <div class="panel"><div class="panel-h"><h2>Queue</h2>
+    <div class="filters">
+      <select id="fDept"><option value="">All departments</option><option>HR</option><option>IT</option><option>Payroll</option><option>Operations</option><option>Other</option></select>
+      <select id="fState"><option value="">All statuses</option><option>Open</option><option>Active</option><option>Finalized</option></select>
+      <select id="fPri"><option value="">All priorities</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
+      <select id="fRisk"><option value="">SLA: any</option><option value="risk">At risk or breached</option><option value="breach">Breached only</option></select>
+    </div></div>
+    <div class="tblwrap"><table><thead><tr>
+      <th>Ticket</th><th>Subject</th><th>Cat</th><th>Pri</th><th>Status</th><th>Assignee</th><th>SLA</th><th>Esc</th><th>Ch</th>
+    </tr></thead><tbody id="qRows"></tbody></table></div>
+    <div id="qEmpty" class="empty hidden">Nothing matches these filters.</div>
+  </div>
+</div>
+
+<!-- ============ ANALYTICS ============ -->
+<div id="v-analytics" class="hidden">
+  <div class="pagehead"><h1>Analytics</h1><p>The reporting the fragmented channels could not produce. Every number below is computed from the ticket log, not entered by hand.</p></div>
+  <div class="stats" id="statCards"></div>
+  <div class="cols s11" style="margin-top:16px">
+    <div class="panel"><div class="panel-h"><h2>Volume by department</h2><span class="sub">Where the work is</span></div>
+      <div class="panel-b"><div class="barlist" id="byDept"></div></div></div>
+    <div class="panel"><div class="panel-h"><h2>Volume by channel</h2><span class="sub">Which adapters earn their keep</span></div>
+      <div class="panel-b"><div class="barlist" id="byChan"></div></div></div>
+    <div class="panel"><div class="panel-h"><h2>Priority mix</h2><span class="sub">Is the matrix calibrated?</span></div>
+      <div class="panel-b"><div class="barlist" id="byPri"></div></div></div>
+    <div class="panel"><div class="panel-h"><h2>Status distribution</h2><span class="sub">Backlog shape</span></div>
+      <div class="panel-b"><div class="barlist" id="bySt"></div></div></div>
+  </div>
+</div>
+
+<!-- ============ ABOUT ============ -->
+<div id="v-about" class="hidden">
+  <div class="pagehead"><h1>How this prototype works</h1><p>What is real here, what is simulated, and where the line was drawn — so a reviewer does not have to guess.</p></div>
+  <div class="cols s11">
+    <div class="panel"><div class="panel-h"><h2>Genuinely implemented</h2><span class="sub">Runs in this page</span></div>
+      <div class="panel-b"><ul style="margin:0;padding-left:18px;color:var(--ink-2);font-size:14px">
+        <li>Weighted-keyword classification with confidence bands and a visible score breakdown.</li>
+        <li>Confidence routing: auto-route ≥ 0.75, route-and-flag 0.45–0.75, hold in triage below 0.45.</li>
+        <li>Sequential ticket IDs in the form <span class="mono">REQ-2026-0001</span>.</li>
+        <li>Impact × urgency priority matrix, plus keyword overrides that force P1.</li>
+        <li>Per-priority SLA targets with a live countdown and breach detection.</li>
+        <li>Four-rung escalation ladder evaluated against elapsed time.</li>
+        <li>Full state machine including Awaiting Requester, Awaiting Third Party, Resolved, Reopen.</li>
+        <li>Least-weighted-load assignment across skill groups.</li>
+        <li>Append-only audit trail on every ticket.</li>
+        <li>Analytics computed live from the ticket log.</li>
+      </ul></div></div>
+    <div class="panel"><div class="panel-h"><h2>Simulated or out of scope</h2><span class="sub">Honest limits</span></div>
+      <div class="panel-b"><ul style="margin:0;padding-left:18px;color:var(--ink-2);font-size:14px">
+        <li><b>Channels</b> are a dropdown, not live WhatsApp / SMS / mailbox adapters.</li>
+        <li><b>Identity</b> comes from a seeded employee list rather than a real HRIS.</li>
+        <li><b>SLA</b> runs on elapsed hours; production runs on each site's business calendar.</li>
+        <li><b>LLM intent classification</b> is designed in Part 1 but not called here — the keyword layer is what runs, deliberately, because it is the auditable half.</li>
+        <li><b>Notifications</b> are shown as audit entries instead of being sent.</li>
+        <li><b>Storage</b> is this browser only. Every reviewer sees their own copy of the seeded data.</li>
+        <li><b>Auth and permissions</b> are not modelled; the restricted-queue rule is designed, not enforced.</li>
+      </ul></div></div>
+  </div>
+  <div class="panel" style="margin-top:16px"><div class="panel-h"><h2>Try these</h2><span class="sub">A reviewer's two-minute tour</span></div>
+    <div class="panel-b"><ol style="margin:0;padding-left:18px;color:var(--ink-2);font-size:14px">
+      <li>Type <i>"my salary was credited short this month"</i> into the subject — watch Payroll win the score before you finish the sentence.</li>
+      <li>Type <i>"system not letting me apply leave"</i> — the scores split between HR and IT, confidence falls into the 0.45–0.75 band, and the verdict becomes route-and-flag rather than a silent guess.</li>
+      <li>Type <i>"need help with the thing from last week"</i> — nothing matches, confidence is 0.00, and it is held in triage for a human. The system refuses to guess.</li>
+      <li>Set impact to <i>My site or the company</i> and urgency to <i>blocked entirely</i> — priority jumps to P1 and the resolve target collapses to four hours.</li>
+      <li>Submit anything, then press <b>+24h</b> twice and open the Agent console — the escalation column climbs L0 → L1 → L2 on its own.</li>
+      <li>Open any ticket, resolve it, then reopen it — the ID stays the same and the reopen counter increments.</li>
+    </ol></div></div>
+</div>
+
+</div>
+
+<div id="drawerWrap"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------- config */
+var CATS=["HR","IT","Payroll","Operations"];
+var GROUPS={HR:"HR Operations",IT:"IT Service Desk",Payroll:"Payroll & Finance",Operations:"Admin & Facilities",Other:"Triage desk"};
+var LEX={
+ HR:{leave:5,vacation:4,holiday:3,sick:4,pto:4,absence:3,attendance:4,resign:5,resignation:5,notice:2,
+     appraisal:4,promotion:3,policy:3,handbook:3,onboarding:4,induction:3,exit:3,"experience letter":6,
+     certificate:3,offer:2,grievance:6,harassment:7,manager:1,hr:5,probation:4,shift:2,roster:2,maternity:5},
+ IT:{password:6,login:5,"log in":5,"logged out":5,"locked out":6,vpn:6,laptop:5,desktop:3,printer:5,wifi:5,
+     network:4,internet:4,email:3,outlook:4,software:4,install:4,licence:4,license:4,access:4,account:3,
+     server:4,system:2,portal:2,error:3,crash:3,slow:2,phishing:7,virus:6,"two factor":5,monitor:3,keyboard:3,
+     reset:3,application:2},
+ Payroll:{salary:7,payslip:7,"pay slip":7,payroll:7,wage:5,tax:5,tds:6,pf:5,"provident fund":6,deduction:6,
+     reimbursement:6,reimburse:5,claim:4,expense:4,bonus:5,incentive:4,arrears:6,increment:4,credited:5,
+     "not credited":7,bank:4,"bank details":6,ctc:5,form16:6,"form 16":6,esi:5,advance:3,overtime:4},
+ Operations:{chair:5,desk:3,ac:4,"air conditioning":5,housekeeping:5,cleaning:4,stationery:5,pantry:4,
+     "id card":6,badge:4,cab:5,transport:5,travel:5,booking:4,hotel:4,vendor:5,purchase:5,procurement:6,
+     asset:4,facility:5,maintenance:5,repair:4,parking:4,canteen:4,unsafe:6,safety:5,security:3,washroom:4,
+     "meeting room":5,supplies:4}
+};
+var FORCE_P1=["harassment","unsafe","accident","injury","fire","phishing","data breach","threat","assault","discrimination"];
+var SLA={P1:{resp:0.25,res:4},P2:{resp:2,res:24},P3:{resp:8,res:72},P4:{resp:24,res:120}};
+var MATRIX=[["P4","P3","P3","P2"],["P4","P3","P2","P2"],["P3","P2","P2","P1"],["P3","P2","P1","P1"]];
+var PEOPLE=[
+ {id:"E-1042",name:"Ananya Rao",dept:"Sales",site:"Bengaluru",mgr:"Vikram Shah"},
+ {id:"E-1188",name:"Daniel Okoro",dept:"Engineering",site:"Bengaluru",mgr:"Priya Menon"},
+ {id:"E-1207",name:"Meera Krishnan",dept:"Customer Success",site:"Chennai",mgr:"Rahul Bose"},
+ {id:"E-1310",name:"Tom Whitfield",dept:"Marketing",site:"Pune",mgr:"Sana Qureshi"},
+ {id:"E-1455",name:"Farah Siddiqui",dept:"Operations",site:"Chennai",mgr:"Rahul Bose"}
+];
+var AGENTS=[
+ {n:"Kavya Nair",g:"HR"},{n:"Imran Sheikh",g:"HR"},
+ {n:"Rohit Verma",g:"IT"},{n:"Elena Petrova",g:"IT"},{n:"Sam Adeyemi",g:"IT"},
+ {n:"Nisha Gupta",g:"Payroll"},{n:"Arun Pillai",g:"Payroll"},
+ {n:"Grace Mbeki",g:"Operations"},{n:"Deepak Rana",g:"Operations"},
+ {n:"Triage Desk",g:"Other"}
+];
+var WEIGHT={P1:5,P2:3,P3:2,P4:1};
+var KEY="reqdesk.v1";
+var HOUR=3600000;
+
+/* ---------------------------------------------------------------- state */
+var S={tickets:[],seq:0,offset:0,view:"submit",open:null,who:"E-1042"};
+function now(){return Date.now()+S.offset;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({t:S.tickets,s:S.seq,o:S.offset}));}catch(e){}}
+function load(){try{var r=localStorage.getItem(KEY);if(!r)return false;var d=JSON.parse(r);
+  if(!d||!d.t||!d.t.length)return false;S.tickets=d.t;S.seq=d.s||d.t.length;S.offset=d.o||0;return true;}catch(e){return false;}}
+
+/* ---------------------------------------------------------------- engine */
+function classify(text,override){
+  var t=(" "+text+" ").toLowerCase(), sc={}, hits={}, tot=0, i, c, k, w;
+  for(i=0;i<CATS.length;i++){c=CATS[i];sc[c]=0;hits[c]=[];}
+  if(override){for(i=0;i<CATS.length;i++)sc[CATS[i]]=0;
+    return {cat:override,conf:1,scores:sc,hits:{},reason:"Requester selected this category. Overrides are always honoured."};}
+  for(i=0;i<CATS.length;i++){c=CATS[i];
+    for(k in LEX[c]){ if(t.indexOf(k)>=0){ w=LEX[c][k]; sc[c]+=w; hits[c].push(k);} }
+    tot+=sc[c];
+  }
+  var best=CATS[0];for(i=1;i<CATS.length;i++)if(sc[CATS[i]]>sc[best])best=CATS[i];
+  var top=sc[best];
+  if(top===0) return {cat:"Other",conf:0,scores:sc,hits:hits,reason:"No known signal words matched. Held for a human to categorise."};
+  var share=top/tot;                          /* how dominant is the winner */
+  var evidence=0.55+0.45*Math.min(1,top/6);   /* is there enough evidence at all */
+  var conf=Math.round(Math.pow(share,1.5)*evidence*100)/100;
+  var second=0;for(i=0;i<CATS.length;i++)if(CATS[i]!==best&&sc[CATS[i]]>second)second=sc[CATS[i]];
+  var reason=second>0&&share<0.8
+    ? "Signals split between "+best+" and a competing department."
+    : "Matched "+hits[best].length+" "+best+" signal"+(hits[best].length===1?"":"s")+".";
+  return {cat:best,conf:conf,scores:sc,hits:hits,reason:reason};
+}
+function band(c){return c>=0.75?"auto":(c>=0.45?"rev":"tri");}
+function priority(imp,urg,text){
+  var p=MATRIX[+imp][+urg], t=(" "+text+" ").toLowerCase();
+  for(var i=0;i<FORCE_P1.length;i++) if(t.indexOf(FORCE_P1[i])>=0) return {p:"P1",forced:FORCE_P1[i]};
+  return {p:p,forced:null};
+}
+function pickAgent(cat,tickets){
+  var pool=AGENTS.filter(function(a){return a.g===cat;});
+  if(!pool.length) pool=AGENTS.filter(function(a){return a.g==="Other";});
+  var best=null,bl=1e9;
+  pool.forEach(function(a){
+    var l=0;
+    tickets.forEach(function(t){ if(t.assignee===a.n && pub(t.state)!=="Finalized") l+=WEIGHT[t.pri]||1; });
+    if(l<bl){bl=l;best=a.n;}
+  });
+  return best;
+}
+function pub(x){
+  var st = (x && typeof x === "object" && x.state) ? x.state : x;
+  if(st==="Submitted"||st==="Triage"||st==="Open"||st==="Awaiting Approval")return "Open";
+  if(st==="Active"||st==="Awaiting Requester"||st==="Awaiting Third Party")return "Active";
+  return "Finalized";
+}
+function clockRuns(st){return st!=="Awaiting Requester"&&st!=="Awaiting Approval"&&pub(st)!=="Finalized";}
+function elapsed(t){
+  var end = t.resolvedAt || now();
+  var paused = t.pausedH||0;
+  if(t.pauseAt) paused += Math.max(0,(end - t.pauseAt)/HOUR);
+  return Math.max(0,(end-t.createdAt)/HOUR - paused);
+}
+function slaPct(t){ var w=SLA[t.pri].res; return elapsed(t)/w; }
+function escLevel(t){
+  if(pub(t)==="Finalized") return t.escFinal||0;
+  var p=slaPct(t);
+  if(p>=1.5) return 3; if(p>=1) return 2; if(p>=0.75) return 1; if(p>=0.5) return 0.5;
+  return 0;
+}
+function escLabel(l){return l===0?"—":l===0.5?"L0 nudge":l===1?"L1 lead":l===2?"L2 breach":"L3 exec";}
+function audit(t,who,what){t.audit.push({at:now(),who:who,what:what});}
+
+function create(o){
+  S.seq++;
+  var cls=classify(o.subject+" "+o.body,o.override);
+  var pr=priority(o.imp,o.urg,o.subject+" "+o.body);
+  var b=band(cls.conf);
+  var state = b==="tri" ? "Triage" : "Open";
+  var cat = b==="tri" ? "Other" : cls.cat;
+  var t={
+    id:"REQ-2026-"+String(S.seq).padStart(4,"0"),
+    createdAt:now(), requester:o.who, channel:o.chan,
+    subject:o.subject, body:o.body,
+    cat:cat, conf:cls.conf, scores:cls.scores, band:b, reason:cls.reason,
+    pri:pr.p, forced:pr.forced, imp:+o.imp, urg:+o.urg,
+    state:state, assignee:null, pausedH:0, pauseAt:null,
+    resolvedAt:null, resolution:null, reopens:0, escFinal:0, audit:[]
+  };
+  audit(t,"System","Created from "+o.chan+" channel. Ticket ID issued.");
+  if(o.override) audit(t,"System","Category set to "+o.override+" by requester. Confidence 1.00.");
+  else audit(t,"Classifier",cls.cat+" scored highest at confidence "+cls.conf.toFixed(2)+". "+cls.reason);
+  if(b==="tri") audit(t,"Router","Confidence below 0.45 — held in the triage queue for a human.");
+  else if(b==="rev") audit(t,"Router","Confidence 0.45–0.75 — routed to "+GROUPS[cat]+" and flagged for the group lead to confirm.");
+  else audit(t,"Router","Confidence at or above 0.75 — auto-routed to "+GROUPS[cat]+".");
+  if(pr.forced) audit(t,"Policy",'Priority forced to P1 by the term "'+pr.forced+'".');
+  audit(t,"SLA","Priority "+pr.p+". First response due in "+SLA[pr.p].resp+"h, resolution in "+SLA[pr.p].res+"h.");
+  t.assignee=pickAgent(cat,S.tickets);
+  audit(t,"Router","Assigned to "+t.assignee+" — lowest weighted open load in "+GROUPS[cat]+".");
+  audit(t,"Notification","Acknowledgement sent to the requester on "+o.chan+" with the ticket ID.");
+  S.tickets.unshift(t); save(); return t;
+}
+function transition(t,to,who,why){
+  var from=t.state;
+  if(from==="Awaiting Requester"||from==="Awaiting Approval"){
+    if(t.pauseAt){ t.pausedH += (now()-t.pauseAt)/HOUR; t.pauseAt=null; }
+  }
+  if(to==="Awaiting Requester"||to==="Awaiting Approval") t.pauseAt=now();
+  if(to==="Resolved"||to==="Finalized"||to==="Cancelled"){ if(!t.resolvedAt) t.resolvedAt=now(); t.escFinal=escLevel(t); }
+  if(from==="Finalized"||from==="Resolved"){ if(to==="Active"){ t.reopens++; t.resolvedAt=null; } }
+  t.state=to;
+  audit(t,who,(why?why+" ":"")+"Status "+from+" → "+to+".");
+  save();
+}
+
+/* ---------------------------------------------------------------- seed */
+function seed(){
+  S.tickets=[];S.seq=0;S.offset=0;
+  var base=Date.now();
+  var defs=[
+   {who:"E-1042",chan:"WhatsApp",subject:"Salary credited short this month",body:"My salary was credited but the amount is less than usual, there seems to be an extra deduction.",imp:0,urg:1,ageH:30,to:"Active"},
+   {who:"E-1188",chan:"Portal",subject:"Locked out of VPN after password reset",body:"I reset my password yesterday and now the VPN keeps rejecting my login. I cannot access anything remotely.",imp:0,urg:3,ageH:5,to:"Active"},
+   {who:"E-1207",chan:"Email",subject:"Apply for two days casual leave next week",body:"I would like to apply for leave on Thursday and Friday next week.",imp:0,urg:0,ageH:70,to:"Finalized",res:"Fixed"},
+   {who:"E-1310",chan:"Teams",subject:"Office AC not working on the second floor",body:"The air conditioning on our floor has been off since morning, the whole team is affected.",imp:2,urg:1,ageH:12,to:"Active"},
+   {who:"E-1455",chan:"SMS",subject:"System not letting me apply leave",body:"Every time I try the portal shows an error. Not sure if this is an HR thing or a system thing.",imp:0,urg:1,ageH:26,to:"Open"},
+   {who:"E-1188",chan:"Portal",subject:"Need Form 16 for last financial year",body:"Requesting form 16 for tax filing. I need it before the filing deadline.",imp:0,urg:1,ageH:100,to:"Finalized",res:"Fixed",resAfterH:90},
+   {who:"E-1042",chan:"WhatsApp",subject:"Reimbursement claim still pending approval",body:"I submitted a travel expense claim three weeks ago and it has not been reimbursed yet.",imp:0,urg:0,ageH:96,to:"Active"},
+   {who:"E-1207",chan:"Portal",subject:"New ID card required, old one damaged",body:"My ID card broke and security is not letting me in without it.",imp:0,urg:2,ageH:8,to:"Open"},
+   {who:"E-1310",chan:"Email",subject:"Unsafe wiring near the pantry socket",body:"There is exposed wiring near the pantry, someone could get hurt.",imp:2,urg:2,ageH:2,to:"Active"},
+   {who:"E-1455",chan:"Portal",subject:"Laptop very slow, keeps crashing",body:"My laptop crashes several times a day and applications are extremely slow.",imp:0,urg:2,ageH:50,to:"Awaiting Requester"},
+   {who:"E-1188",chan:"Portal",subject:"Question about the notice period policy",body:"What is the notice period for engineering roles as per the handbook?",imp:0,urg:0,ageH:20,to:"Finalized",res:"Policy answer"},
+   {who:"E-1042",chan:"Walk-in",subject:"Printer on the sales floor is out of toner",body:"Printer stopped working, needs toner replacement.",imp:1,urg:1,ageH:36,to:"Active"}
+  ];
+  defs.forEach(function(d){
+    S.offset = -d.ageH*HOUR;
+    var t=create({who:d.who,chan:d.chan,subject:d.subject,body:d.body,imp:d.imp,urg:d.urg,override:""});
+    S.offset = -Math.max(0,(d.ageH-1))*HOUR;
+    if(d.to!=="Open"){
+      if(d.to==="Finalized"){ transition(t,"Active","Agent","Work started.");
+        S.offset=-Math.max(0,(d.ageH-(d.resAfterH||3)))*HOUR;
+        t.resolution=d.res; transition(t,"Resolved","Agent",'Resolution recorded as "'+d.res+'".');
+        transition(t,"Finalized","System","Requester did not dispute within 72h.");
+      } else if(d.to==="Awaiting Requester"){ transition(t,"Active","Agent","Work started.");
+        transition(t,"Awaiting Requester","Agent","Asked the requester for the device serial number. Clock paused.");
+      } else transition(t,"Active","Agent","Work started.");
+    }
+  });
+  S.offset=0; save();
+}
+
+/* ---------------------------------------------------------------- render */
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function person(id){for(var i=0;i<PEOPLE.length;i++)if(PEOPLE[i].id===id)return PEOPLE[i];return PEOPLE[0];}
+function fmt(ms){var d=new Date(ms);return d.toLocaleDateString(undefined,{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});}
+function ago(ms){var h=(now()-ms)/HOUR;if(h<1)return Math.max(1,Math.round(h*60))+"m ago";if(h<48)return Math.round(h)+"h ago";return Math.round(h/24)+"d ago";}
+function left(t){
+  if(pub(t)==="Finalized")return "—";
+  var r=SLA[t.pri].res-elapsed(t);
+  if(r<0)return "breached by "+Math.round(-r)+"h";
+  return r<1?Math.round(r*60)+"m left":Math.round(r)+"h left";
+}
+function stClass(t){var p=pub(t);
+  if(p==="Finalized")return "st-final";
+  if(t.state==="Awaiting Requester"||t.state==="Awaiting Third Party"||t.state==="Awaiting Approval")return "st-wait";
+  if(slaPct(t)>=1)return "st-risk";
+  return p==="Active"?"st-active":"st";
+}
+function slaCell(t){
+  if(pub(t)==="Finalized"){
+    var br=(t.escFinal>=2);
+    return '<span class="pill '+(br?"st-risk":"st-final")+'">'+(br?"breached":"met")+'</span>';
+  }
+  var p=Math.min(1.4,slaPct(t)), w=Math.min(100,p*100/1.4);
+  var cl=p>=1?"c":(p>=0.75?"w":"");
+  return '<div class="sla"><div class="bar"><i class="fill '+cl+'" style="width:'+w.toFixed(0)+'%"></i></div>'+
+         '<div class="lab">'+esc(left(t))+'</div></div>';
+}
+
+function renderSubmit(){
+  var sub=el("f-sub").value, body=el("f-body").value, ov=el("f-cat").value;
+  var cls=classify(sub+" "+body,ov);
+  var max=1;for(var i=0;i<CATS.length;i++)max=Math.max(max,cls.scores[CATS[i]]);
+  var h="";
+  CATS.forEach(function(c){
+    var v=cls.scores[c]||0;
+    h+='<div class="score"><span class="n">'+c+'</span><span class="t"><i style="width:'+(v/max*100).toFixed(0)+'%"></i></span><span class="v">'+v+'</span></div>';
+  });
+  el("scores").innerHTML=h;
+  var b=band(cls.conf), vh="";
+  var kws=(cls.hits&&cls.hits[cls.cat])?cls.hits[cls.cat].slice(0,8):[];
+  if(!sub&&!body&&!ov){
+    vh='<div class="verdict"><b>Waiting for input</b>Start typing a subject and the classifier scores update on every keystroke.</div>';
+  } else if(b==="auto"){
+    vh='<div class="verdict auto"><b>Auto-route → '+esc(cls.cat)+' · confidence '+cls.conf.toFixed(2)+'</b>'+esc(cls.reason)+' Goes straight to '+esc(GROUPS[cls.cat])+' with no human triage.</div>';
+  } else if(b==="rev"){
+    vh='<div class="verdict rev"><b>Route &amp; flag → '+esc(cls.cat)+' · confidence '+cls.conf.toFixed(2)+'</b>'+esc(cls.reason)+' Routed to '+esc(GROUPS[cls.cat])+', but the group lead is asked to confirm the category.</div>';
+  } else {
+    vh='<div class="verdict tri"><b>Hold in triage · confidence '+cls.conf.toFixed(2)+'</b>'+esc(cls.reason)+' A human categorises this rather than the system guessing wrong.</div>';
+  }
+  if(kws.length) vh+='<div style="margin-top:8px">'+kws.map(function(k){return '<span class="kw">'+esc(k)+'</span>';}).join("")+'</div>';
+  el("verdict").innerHTML=vh;
+  var pr=priority(el("f-imp").value,el("f-urg").value,sub+" "+body);
+  el("pv").innerHTML='<span class="pill '+pr.p+'">'+pr.p+'</span>'+(pr.forced?' <span style="font-size:12px;color:var(--crit)">forced by “'+esc(pr.forced)+'”</span>':'');
+  el("sv").textContent=SLA[pr.p].res+" hours";
+  el("rv").textContent=SLA[pr.p].resp<1?(SLA[pr.p].resp*60)+" minutes":SLA[pr.p].resp+" hours";
+  el("gv").textContent = b==="tri" ? "Triage desk" : GROUPS[cls.cat];
+  el("chanlab").textContent=el("f-chan").value;
+}
+function renderMine(){
+  var who=el("mineWho").value;
+  el("whoName").textContent=person(who).name;
+  var list=S.tickets.filter(function(t){return t.requester===who;});
+  var h="";
+  list.forEach(function(t){
+    h+='<tr><td><button class="tid" data-open="'+t.id+'">'+t.id+'</button></td>'+
+      '<td>'+esc(t.subject)+'</td><td>'+esc(t.cat)+'</td>'+
+      '<td><span class="pill '+stClass(t)+'">'+pub(t)+'</span>'+
+        (t.state!==pub(t)?' <span style="font-size:11.5px;color:var(--muted)">'+esc(t.state)+'</span>':'')+'</td>'+
+      '<td><span class="pill '+t.pri+'">'+t.pri+'</span></td>'+
+      '<td class="mono" style="font-size:12px;color:var(--muted)">'+ago(t.createdAt)+'</td>'+
+      '<td class="mono" style="font-size:12px">'+esc(left(t))+'</td></tr>';
+  });
+  el("mineRows").innerHTML=h;
+  el("mineEmpty").className=list.length?"empty hidden":"empty";
+}
+function renderQueue(){
+  var d=el("fDept").value,st=el("fState").value,p=el("fPri").value,r=el("fRisk").value;
+  var list=S.tickets.filter(function(t){
+    if(d&&t.cat!==d)return false;
+    if(st&&pub(t)!==st)return false;
+    if(p&&t.pri!==p)return false;
+    if(r==="risk"&&!(pub(t)!=="Finalized"&&slaPct(t)>=0.75))return false;
+    if(r==="breach"&&!(slaPct(t)>=1&&pub(t)!=="Finalized"))return false;
+    return true;
+  });
+  list.sort(function(a,b){
+    var fa=pub(a)==="Finalized"?1:0, fb=pub(b)==="Finalized"?1:0;
+    if(fa!==fb)return fa-fb;
+    return slaPct(b)-slaPct(a);
+  });
+  var h="";
+  list.forEach(function(t){
+    var e=escLevel(t);
+    var stripe = pub(t)!=="Finalized" && slaPct(t)>=1 ? "border-left:2px solid var(--crit)" :
+                 pub(t)!=="Finalized" && slaPct(t)>=0.75 ? "border-left:2px solid var(--amber)" : "border-left:2px solid transparent";
+    h+='<tr><td style="'+stripe+'"><button class="tid" data-open="'+t.id+'">'+t.id+'</button></td>'+
+      '<td>'+esc(t.subject.length>44?t.subject.slice(0,44)+"…":t.subject)+'</td>'+
+      '<td>'+esc(t.cat)+(t.band==="rev"?' <span title="flagged for lead confirmation" style="color:var(--amber)">▲</span>':'')+'</td>'+
+      '<td><span class="pill '+t.pri+'">'+t.pri+'</span></td>'+
+      '<td><span class="pill '+stClass(t)+'">'+esc(t.state)+'</span></td>'+
+      '<td style="font-size:12.5px">'+esc(t.assignee||"—")+'</td>'+
+      '<td>'+slaCell(t)+'</td>'+
+      '<td class="mono" style="font-size:11px;color:'+(e>=2?"var(--crit)":e>=1?"var(--amber)":"var(--muted)")+'">'+escLabel(e)+'</td>'+
+      '<td class="mono" style="font-size:11px;color:var(--muted)">'+esc(t.channel)+'</td></tr>';
+  });
+  el("qRows").innerHTML=h;
+  el("qEmpty").className=list.length?"empty hidden":"empty";
+}
+function bars(node,map){
+  var keys=Object.keys(map), max=1;
+  keys.forEach(function(k){max=Math.max(max,map[k]);});
+  node.innerHTML=keys.map(function(k){
+    return '<div class="barrow"><span>'+esc(k)+'</span><span class="t"><i style="width:'+(map[k]/max*100).toFixed(0)+'%"></i></span><span class="v">'+map[k]+'</span></div>';
+  }).join("");
+}
+function renderAnalytics(){
+  var T=S.tickets, n=T.length||1;
+  var fin=T.filter(function(t){return pub(t)==="Finalized";});
+  var met=fin.filter(function(t){return t.escFinal<2;}).length;
+  var risk=T.filter(function(t){return pub(t)!=="Finalized"&&slaPct(t)>=0.75;}).length;
+  var tri=T.filter(function(t){return t.band==="tri";}).length;
+  var auto=T.filter(function(t){return t.band==="auto";}).length;
+  var reop=T.reduce(function(a,t){return a+t.reopens;},0);
+  var resT=fin.map(function(t){return (t.resolvedAt-t.createdAt)/HOUR;});
+  var avg=resT.length?(resT.reduce(function(a,b){return a+b;},0)/resT.length):0;
+  var cards=[
+    {k:"Total tickets",v:T.length,d:"All channels, all departments"},
+    {k:"Open + active",v:T.length-fin.length,d:"Currently owned by an agent"},
+    {k:"SLA attainment",v:fin.length?Math.round(met/fin.length*100)+"%":"—",d:"Of finalized tickets"},
+    {k:"At risk now",v:risk,d:"Past 75% of resolve SLA",warn:risk>0},
+    {k:"Auto-classified",v:Math.round(auto/n*100)+"%",d:"Routed with no human triage"},
+    {k:"Triage share",v:Math.round(tri/n*100)+"%",d:"Needed a human to categorise"},
+    {k:"Avg resolution",v:avg?avg.toFixed(1)+"h":"—",d:"Creation to resolution"},
+    {k:"Reopens",v:reop,d:"Resolutions the requester disputed"}
+  ];
+  el("statCards").innerHTML=cards.map(function(c){
+    return '<div class="stat'+(c.warn?" warn":"")+'"><span class="k">'+esc(c.k)+'</span><div class="v">'+esc(String(c.v))+'</div><div class="d">'+esc(c.d)+'</div></div>';
+  }).join("");
+  var byD={},byC={},byP={P1:0,P2:0,P3:0,P4:0},byS={Open:0,Active:0,Finalized:0};
+  ["HR","IT","Payroll","Operations","Other"].forEach(function(c){byD[c]=0;});
+  ["Portal","WhatsApp","Email","SMS","Teams","Walk-in"].forEach(function(c){byC[c]=0;});
+  T.forEach(function(t){byD[t.cat]=(byD[t.cat]||0)+1;byC[t.channel]=(byC[t.channel]||0)+1;byP[t.pri]++;byS[pub(t)]++;});
+  bars(el("byDept"),byD);bars(el("byChan"),byC);bars(el("byPri"),byP);bars(el("bySt"),byS);
+}
+function renderClock(){
+  var o=S.offset/HOUR;
+  el("clk").textContent = (o===0?"live":(o>0?"+":"")+Math.round(o)+"h") ;
+}
+function render(){
+  renderClock();
+  ["submit","mine","console","analytics","about"].forEach(function(v){
+    el("v-"+v).className = (v===S.view?"":"hidden");
+  });
+  document.querySelectorAll(".tab").forEach(function(b){b.setAttribute("aria-selected",b.dataset.v===S.view?"true":"false");});
+  if(S.view==="submit")renderSubmit();
+  if(S.view==="mine")renderMine();
+  if(S.view==="console")renderQueue();
+  if(S.view==="analytics")renderAnalytics();
+  renderDrawer();
+}
+
+/* ---------------------------------------------------------------- drawer */
+function actions(t){
+  var a=[];
+  if(t.state==="Triage") a.push(["Categorise as IT","cat:IT"],["Categorise as HR","cat:HR"],["Categorise as Payroll","cat:Payroll"],["Categorise as Operations","cat:Operations"]);
+  if(t.state==="Open") a.push(["Start work","to:Active"]);
+  if(t.state==="Active") a.push(["Resolve","resolve"],["Ask requester for info","to:Awaiting Requester"],["Blocked on a vendor","to:Awaiting Third Party"]);
+  if(t.state==="Awaiting Requester"||t.state==="Awaiting Third Party") a.push(["Resume work","to:Active"]);
+  if(t.state==="Resolved") a.push(["Requester confirms — finalize","to:Finalized"],["Requester disputes — reopen","to:Active"]);
+  if(t.state==="Finalized") a.push(["Reopen","to:Active"]);
+  if(pub(t)!=="Finalized") a.push(["Cancel","to:Cancelled"],["Reassign within group","reassign"]);
+  return a;
+}
+function renderDrawer(){
+  var w=el("drawerWrap");
+  if(!S.open){w.innerHTML="";return;}
+  var t=null;for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===S.open)t=S.tickets[i];
+  if(!t){S.open=null;w.innerHTML="";return;}
+  var p=person(t.requester), e=escLevel(t);
+  var h='<div class="scrim" data-close="1"></div><div class="drawer" role="dialog" aria-label="Ticket '+t.id+'">'+
+   '<div class="drawer-h"><div><h3>'+esc(t.subject)+'</h3>'+
+     '<div class="mono" style="font-size:12px;color:var(--accent-ink)">'+t.id+'</div></div>'+
+     '<button class="x" data-close="1" aria-label="Close">✕</button></div><div class="drawer-b">'+
+   '<div class="row" style="margin-bottom:16px">'+
+     '<span class="pill '+t.pri+'">'+t.pri+'</span>'+
+     '<span class="pill '+stClass(t)+'">'+esc(t.state)+'</span>'+
+     '<span class="pill st">'+esc(t.cat)+'</span>'+
+     (e>=1?'<span class="pill st-risk">'+escLabel(e)+'</span>':'')+
+     (t.reopens?'<span class="pill st-wait">reopened ×'+t.reopens+'</span>':'')+'</div>'+
+   '<p style="font-size:14px;color:var(--ink-2);margin:0 0 4px">'+esc(t.body)+'</p>'+
+   '<h4 class="sec">Ticket record</h4><dl class="dl">'+
+     '<dt>Requester</dt><dd>'+esc(p.name)+' · '+esc(p.id)+' · '+esc(p.dept)+', '+esc(p.site)+'</dd>'+
+     '<dt>Manager</dt><dd>'+esc(p.mgr)+'</dd>'+
+     '<dt>Channel</dt><dd>'+esc(t.channel)+'</dd>'+
+     '<dt>Raised</dt><dd>'+fmt(t.createdAt)+' · '+ago(t.createdAt)+'</dd>'+
+     '<dt>Assignee</dt><dd>'+esc(t.assignee||"—")+' · '+esc(GROUPS[t.cat])+'</dd>'+
+     '<dt>Confidence</dt><dd>'+t.conf.toFixed(2)+' ('+(t.band==="auto"?"auto-routed":t.band==="rev"?"routed &amp; flagged":"held in triage")+')</dd>'+
+     '<dt>Impact × urgency</dt><dd>'+["Only me","A few people","Whole team","Site or company"][t.imp]+' × '+["Nothing blocked","Some work","Most work","Blocked entirely"][t.urg]+
+        (t.forced?' <span style="color:var(--crit)">— forced to P1 by “'+esc(t.forced)+'”</span>':'')+'</dd>'+
+     '<dt>Resolve SLA</dt><dd>'+SLA[t.pri].res+'h target · '+elapsed(t).toFixed(1)+'h elapsed'+(t.pausedH?' ('+t.pausedH.toFixed(1)+'h paused)':'')+' · '+esc(left(t))+'</dd>'+
+     (t.resolution?'<dt>Resolution</dt><dd>'+esc(t.resolution)+'</dd>':'')+
+   '</dl>'+
+   '<h4 class="sec">Actions</h4><div class="row">'+
+     actions(t).map(function(a){return '<button class="btn ghost sm" data-act="'+a[1]+'">'+esc(a[0])+'</button>';}).join("")+
+   '</div>'+
+   '<h4 class="sec">Audit trail — append only</h4><ul class="audit">'+
+     t.audit.map(function(a){return '<li>'+esc(a.what)+'<span class="w">'+esc(a.who)+' · '+fmt(a.at)+'</span></li>';}).join("")+
+   '</ul></div></div>';
+  w.innerHTML=h;
+}
+
+/* ---------------------------------------------------------------- events */
+function toast(m){var n=el("toast");n.innerHTML='<div class="toast">'+esc(m)+'</div>';
+  setTimeout(function(){n.innerHTML="";},2600);}
+
+document.querySelectorAll(".tab").forEach(function(b){
+  b.addEventListener("click",function(){S.view=b.dataset.v;render();});
+});
+["f-sub","f-body","f-cat","f-imp","f-urg","f-chan"].forEach(function(id){
+  el(id).addEventListener("input",renderSubmit);
+});
+["fDept","fState","fPri","fRisk"].forEach(function(id){el(id).addEventListener("change",renderQueue);});
+el("mineWho").addEventListener("change",function(){S.who=el("mineWho").value;renderMine();});
+
+el("go").addEventListener("click",function(){
+  var sub=el("f-sub").value.trim();
+  if(!sub){toast("Add a subject so the request can be classified.");el("f-sub").focus();return;}
+  var t=create({who:el("f-who").value,chan:el("f-chan").value,subject:sub,body:el("f-body").value.trim(),
+    imp:el("f-imp").value,urg:el("f-urg").value,override:el("f-cat").value});
+  el("f-sub").value="";el("f-body").value="";el("f-cat").value="";
+  S.who=t.requester; el("mineWho").value=t.requester;
+  toast(t.id+" created — routed to "+(t.state==="Triage"?"the triage desk":GROUPS[t.cat]));
+  S.view="mine";render();
+});
+el("demo").addEventListener("click",function(){
+  var ex=[
+    ["Salary not credited for this month","My salary has not come in and it is already the 3rd. Colleagues have received theirs.",0,2],
+    ["Cannot connect to office wifi on my laptop","Wifi keeps dropping and I cannot join any calls from my desk.",0,2],
+    ["Need three days leave for a family function","Requesting leave from the 12th to the 14th.",0,0],
+    ["Chair broken in the finance bay","The chair at my desk has a broken base and is unsafe to sit on.",0,1],
+    ["System not letting me apply leave","The portal throws an error when I click submit — not sure who owns this.",0,1]
+  ];
+  var e=ex[Math.floor(Math.random()*ex.length)];
+  el("f-sub").value=e[0];el("f-body").value=e[1];el("f-imp").value=e[2];el("f-urg").value=e[3];el("f-cat").value="";
+  renderSubmit();
+});
+function advance(h){S.offset+=h*HOUR;save();render();toast("Clock advanced "+h+" hours — SLA and escalation recalculated.");}
+el("adv4").addEventListener("click",function(){advance(4);});
+el("adv24").addEventListener("click",function(){advance(24);});
+el("reset").addEventListener("click",function(){seed();S.open=null;render();toast("Demo data reset.");});
+
+document.addEventListener("click",function(ev){
+  var o=ev.target.closest?ev.target.closest("[data-open]"):null;
+  if(o){S.open=o.dataset.open;renderDrawer();return;}
+  if(ev.target.closest&&ev.target.closest("[data-close]")){S.open=null;renderDrawer();return;}
+  var a=ev.target.closest?ev.target.closest("[data-act]"):null;
+  if(!a)return;
+  var t=null;for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===S.open)t=S.tickets[i];
+  if(!t)return;
+  var v=a.dataset.act;
+  if(v.indexOf("cat:")===0){
+    var c=v.slice(4); var old=t.cat;
+    t.cat=c; t.band="auto"; t.assignee=pickAgent(c,S.tickets);
+    audit(t,"Triage agent","Category corrected "+old+" → "+c+". SLA clock was not reset. Logged as classifier training data.");
+    transition(t,"Open","Triage agent","Categorised by a human.");
+    toast("Reclassified to "+c+" and assigned to "+t.assignee);
+  } else if(v==="resolve"){
+    t.resolution="Fixed";
+    transition(t,"Resolved","Agent",'Resolution recorded as "Fixed". Requester notified on '+t.channel+'; 72h to dispute.');
+    toast("Resolved — awaiting requester confirmation");
+  } else if(v==="reassign"){
+    var prev=t.assignee;
+    var pool=AGENTS.filter(function(x){return x.g===t.cat&&x.n!==prev;});
+    if(pool.length){t.assignee=pool[Math.floor(Math.random()*pool.length)].n;
+      audit(t,"Group lead","Reassigned "+prev+" → "+t.assignee+".");save();toast("Reassigned to "+t.assignee);}
+    else toast("No other agent in this group.");
+  } else if(v.indexOf("to:")===0){
+    var to=v.slice(3);
+    var why = to==="Active"&&(t.state==="Finalized"||t.state==="Resolved") ? "Requester disputed the resolution. Same ticket ID retained." :
+              to==="Awaiting Requester" ? "Information requested. SLA clock paused." :
+              to==="Awaiting Third Party" ? "Blocked on an external vendor. SLA clock keeps running." :
+              to==="Finalized" ? "Confirmed by the requester." :
+              to==="Cancelled" ? "Withdrawn by the requester. Excluded from SLA statistics." : "";
+    transition(t,to,to==="Finalized"||to==="Cancelled"?"System":"Agent",why);
+    toast("Now "+to);
+  }
+  render();
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&S.open){S.open=null;renderDrawer();}});
+
+/* ---------------------------------------------------------------- boot */
+(function(){
+  var opts=PEOPLE.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.dept)+'</option>';}).join("");
+  el("f-who").innerHTML=opts; el("mineWho").innerHTML=opts;
+  if(!load()) seed();
+  el("mineWho").value=S.who;
+  render();
+  setInterval(function(){ if(S.view==="console")renderQueue(); if(S.view==="analytics")renderAnalytics(); },30000);
+})();
+</script>
+</body>
+</html>
